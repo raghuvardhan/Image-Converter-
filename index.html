@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>JPEG to PNG Converter</title>
+  <title>Multi-Format Image Converter</title>
   <style>
     body {
       font-family: sans-serif;
@@ -15,7 +15,7 @@
       margin-bottom: 1em;
     }
 
-    .file-input {
+    .file-input, select, button {
       margin: 1em 0;
     }
 
@@ -35,48 +35,61 @@
       padding: 0.5em 1em;
       font-size: 1rem;
       cursor: pointer;
+      margin: 0 5px;
     }
   </style>
 </head>
 <body>
-  <h1>JPEG to PNG Converter</h1>
-
-  <!-- File Input -->
-  <input 
-    type="file" 
-    id="imageInput" 
-    accept="image/jpeg" 
+  <h1>Multi-Format Image Converter</h1>
+  
+  <!-- File Input (accept many image types) -->
+  <input
+    type="file"
+    id="imageInput"
+    accept="image/*" 
     class="file-input"
   />
 
-  <!-- Convert Button -->
-  <br/>
-  <button id="convertBtn" disabled>Convert to PNG</button>
+  <!-- Choose output format -->
+  <div>
+    <label for="outputFormat">Choose output format:</label>
+    <select id="outputFormat">
+      <option value="image/png">PNG</option>
+      <option value="image/jpeg">JPEG</option>
+      <option value="image/webp">WebP</option>
+    </select>
+  </div>
 
-  <!-- Hidden Canvas (for drawing the JPEG) -->
+  <!-- Convert Button -->
+  <button id="convertBtn" disabled>Convert</button>
+
+  <!-- Download Button -->
+  <button id="downloadBtn" disabled>Download</button>
+
+  <!-- Hidden Canvas (for drawing the uploaded image) -->
   <canvas id="canvas" class="hidden"></canvas>
 
-  <!-- Output PNG Preview -->
-  <img id="outputImage" src="#" alt="Converted PNG will appear here" />
+  <!-- Output Image Preview -->
+  <img id="outputImage" src="#" alt="Converted image will appear here" />
 
-  <!-- Script -->
   <script>
     const imageInput = document.getElementById('imageInput');
+    const outputFormatSelect = document.getElementById('outputFormat');
     const convertBtn = document.getElementById('convertBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
     const canvas = document.getElementById('canvas');
     const outputImage = document.getElementById('outputImage');
     const ctx = canvas.getContext('2d');
-    let uploadedImage = null;
 
-    // Enable the "Convert to PNG" button only after a file is selected
+    // Will hold the final data URL of the converted image
+    let convertedDataUrl = '';
+
+    // Enable the "Convert" button only after an image is selected
     imageInput.addEventListener('change', () => {
-      if (imageInput.files && imageInput.files[0]) {
-        convertBtn.disabled = false;
-      } else {
-        convertBtn.disabled = true;
-      }
+      convertBtn.disabled = !imageInput.files || !imageInput.files[0];
     });
 
+    // Convert the uploaded image to the chosen format
     convertBtn.addEventListener('click', () => {
       if (!imageInput.files || !imageInput.files[0]) return;
 
@@ -84,24 +97,50 @@
       const reader = new FileReader();
 
       reader.onload = function(e) {
-        // Create an Image object to draw on the canvas
         const img = new Image();
         img.onload = function() {
-          // Resize canvas to match the image
+          // Resize canvas to match the image dimensions
           canvas.width = img.width;
           canvas.height = img.height;
-          // Draw the JPEG onto the canvas
+
+          // Draw the image on canvas
           ctx.drawImage(img, 0, 0);
-          // Convert canvas content to PNG data URL
-          const pngDataUrl = canvas.toDataURL('image/png');
-          // Display the converted image
-          outputImage.src = pngDataUrl;
+
+          // Get the desired format from the dropdown
+          const selectedFormat = outputFormatSelect.value;
+
+          // Convert the canvas content to a data URL
+          convertedDataUrl = canvas.toDataURL(selectedFormat);
+
+          // Set the converted image preview
+          outputImage.src = convertedDataUrl;
+
+          // Enable the "Download" button
+          downloadBtn.disabled = false;
         };
         img.src = e.target.result;
       };
 
-      // Read the image file
+      // Read the file
       reader.readAsDataURL(file);
+    });
+
+    // Download the converted image
+    downloadBtn.addEventListener('click', () => {
+      if (!convertedDataUrl) return;
+
+      const selectedFormat = outputFormatSelect.value;
+      let fileExtension = 'png'; // default
+
+      if (selectedFormat === 'image/jpeg') fileExtension = 'jpg';
+      else if (selectedFormat === 'image/webp') fileExtension = 'webp';
+      // otherwise 'png'
+
+      // Create an <a> element and trigger the download
+      const link = document.createElement('a');
+      link.href = convertedDataUrl;
+      link.download = `converted.${fileExtension}`;
+      link.click();
     });
   </script>
 </body>
