@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>JPEG to PNG Converter</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 1em;
+    }
+
+    .file-input {
+      margin: 1em 0;
+    }
+
+    #outputImage {
+      display: block;
+      margin: 1em auto;
+      max-width: 100%;
+      border: 1px solid #ccc;
+      padding: 5px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    button {
+      padding: 0.5em 1em;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>JPEG to PNG Converter</h1>
+
+  <!-- File Input -->
+  <input 
+    type="file" 
+    id="imageInput" 
+    accept="image/jpeg" 
+    class="file-input"
+  />
+
+  <!-- Convert Button -->
+  <br/>
+  <button id="convertBtn" disabled>Convert to PNG</button>
+
+  <!-- Hidden Canvas (for drawing the JPEG) -->
+  <canvas id="canvas" class="hidden"></canvas>
+
+  <!-- Output PNG Preview -->
+  <img id="outputImage" src="#" alt="Converted PNG will appear here" />
+
+  <!-- Script -->
+  <script>
+    const imageInput = document.getElementById('imageInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const canvas = document.getElementById('canvas');
+    const outputImage = document.getElementById('outputImage');
+    const ctx = canvas.getContext('2d');
+    let uploadedImage = null;
+
+    // Enable the "Convert to PNG" button only after a file is selected
+    imageInput.addEventListener('change', () => {
+      if (imageInput.files && imageInput.files[0]) {
+        convertBtn.disabled = false;
+      } else {
+        convertBtn.disabled = true;
+      }
+    });
+
+    convertBtn.addEventListener('click', () => {
+      if (!imageInput.files || !imageInput.files[0]) return;
+
+      const file = imageInput.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        // Create an Image object to draw on the canvas
+        const img = new Image();
+        img.onload = function() {
+          // Resize canvas to match the image
+          canvas.width = img.width;
+          canvas.height = img.height;
+          // Draw the JPEG onto the canvas
+          ctx.drawImage(img, 0, 0);
+          // Convert canvas content to PNG data URL
+          const pngDataUrl = canvas.toDataURL('image/png');
+          // Display the converted image
+          outputImage.src = pngDataUrl;
+        };
+        img.src = e.target.result;
+      };
+
+      // Read the image file
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
