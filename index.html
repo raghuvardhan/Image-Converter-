@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Multi-Format Image Converter</title>
+  <title>Multi-Format Image Converter with Progress</title>
   <style>
     body {
       font-family: sans-serif;
@@ -37,6 +37,15 @@
       cursor: pointer;
       margin: 0 5px;
     }
+
+    #progressContainer {
+      margin: 1em 0;
+    }
+
+    #progressBar {
+      width: 100%;
+      height: 20px;
+    }
   </style>
 </head>
 <body>
@@ -66,6 +75,11 @@
   <!-- Download Button -->
   <button id="downloadBtn" disabled>Download</button>
 
+  <!-- Progress Bar -->
+  <div id="progressContainer">
+    <progress id="progressBar" value="0" max="100">0%</progress>
+  </div>
+
   <!-- Hidden Canvas (for drawing the uploaded image) -->
   <canvas id="canvas" class="hidden"></canvas>
 
@@ -81,13 +95,29 @@
     const outputImage = document.getElementById('outputImage');
     const ctx = canvas.getContext('2d');
 
+    // Progress bar elements
+    const progressBar = document.getElementById('progressBar');
+
     // Will hold the final data URL of the converted image
     let convertedDataUrl = '';
 
     // Enable the "Convert" button only after an image is selected
     imageInput.addEventListener('change', () => {
-      convertBtn.disabled = !imageInput.files || !imageInput.files[0];
+      if (imageInput.files && imageInput.files[0]) {
+        convertBtn.disabled = false;
+      } else {
+        convertBtn.disabled = true;
+      }
+      resetProgressBar();
     });
+
+    // Reset progress bar to 0
+    function resetProgressBar() {
+      progressBar.value = 0;
+      progressBar.textContent = '0%';
+      downloadBtn.disabled = true;
+      outputImage.src = '#';
+    }
 
     // Convert the uploaded image to the chosen format
     convertBtn.addEventListener('click', () => {
@@ -96,9 +126,24 @@
       const file = imageInput.files[0];
       const reader = new FileReader();
 
+      // Track progress of reading the file
+      reader.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percentRead = (e.loaded / e.total) * 50; // 0–50% of total progress
+          updateProgressBar(percentRead);
+        }
+      };
+
+      // Once the file is fully read (50%)
       reader.onload = function(e) {
+        updateProgressBar(50);
+
+        // Create image to load from data URL
         const img = new Image();
         img.onload = function() {
+          // Approximate the jump from 50% to 90% once image is loaded
+          updateProgressBar(90);
+
           // Resize canvas to match the image dimensions
           canvas.width = img.width;
           canvas.height = img.height;
@@ -106,18 +151,19 @@
           // Draw the image on canvas
           ctx.drawImage(img, 0, 0);
 
-          // Get the desired format from the dropdown
+          // Convert the canvas content to the selected format
           const selectedFormat = outputFormatSelect.value;
-
-          // Convert the canvas content to a data URL
           convertedDataUrl = canvas.toDataURL(selectedFormat);
 
-          // Set the converted image preview
-          outputImage.src = convertedDataUrl;
+          // Final jump to 100% (conversion complete)
+          updateProgressBar(100);
 
-          // Enable the "Download" button
+          // Show the converted image
+          outputImage.src = convertedDataUrl;
           downloadBtn.disabled = false;
         };
+
+        // Start loading the image
         img.src = e.target.result;
       };
 
@@ -130,18 +176,22 @@
       if (!convertedDataUrl) return;
 
       const selectedFormat = outputFormatSelect.value;
-      let fileExtension = 'png'; // default
+      let fileExtension = 'png'; // default to .png
 
       if (selectedFormat === 'image/jpeg') fileExtension = 'jpg';
       else if (selectedFormat === 'image/webp') fileExtension = 'webp';
-      // otherwise 'png'
 
-      // Create an <a> element and trigger the download
       const link = document.createElement('a');
       link.href = convertedDataUrl;
       link.download = `converted.${fileExtension}`;
       link.click();
     });
+
+    // Helper function to update progress bar
+    function updateProgressBar(value) {
+      progressBar.value = value;
+      progressBar.textContent = `${Math.floor(value)}%`;
+    }
   </script>
 </body>
 </html>
